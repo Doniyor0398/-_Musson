@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Муссон — Генератор этикеток</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+            min-height: 100vh;
+            color: #1e1e1e;
+        }
+
+        .app {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e1e1e;
+        }
+
+        .header p {
+            color: #666;
+            margin-top: 4px;
+            font-size: 14px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1e1e1e;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 6px;
+            margin-top: 14px;
+        }
+
+        label:first-of-type {
+            margin-top: 0;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            background: #fafafa;
+            transition: border-color 0.2s;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: white;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #6366f1;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #4f46e5;
+        }
+
+        .btn:active {
+            transform: scale(0.99);
+        }
+
+        .btn--secondary {
+            background: #1e1e1e;
+            margin-top: 10px;
+        }
+
+        .btn--secondary:hover {
+            background: #333;
+        }
+
+        .label-preview {
+            background: white;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            width: 58mm;
+            min-height: 40mm;
+            margin: 0 auto;
+            border: 1px dashed #ccc;
+            color: #000;
+        }
+
+        .label-preview h3 {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        .label-preview p {
+            margin: 2px 0;
+            font-size: 11px;
+        }
+
+        .preview-wrapper {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            min-height: 200px;
+            align-items: center;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            margin-top: 12px;
+            line-height: 1.5;
+        }
+
+        .history {
+            margin-top: 20px;
+            font-size: 13px;
+        }
+
+        .history h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .history-item {
+            padding: 6px 10px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: #444;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* ===== ПЕЧАТЬ ===== */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .header,
+            .card,
+            .btn,
+            .history,
+            .hint,
+            .preview-wrapper>* {
+                display: none !important;
+            }
+
+            .preview-wrapper {
+                background: white;
+                padding: 0;
+                min-height: auto;
+            }
+
+            .label-preview {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                margin: 0;
+                padding: 4px;
+                border: none;
+                width: 58mm;
+                font-size: 12px;
+                box-shadow: none;
+            }
+
+            @page {
+                size: 58mm 40mm;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ====== БАЗА ПРОДУКТОВ (Муссон) ======
+        // hours — срок годности в часах
+        const PRODUCTS = [
+            // Рыба и морепродукты
+            { id: 1, name: 'Лосось филе П/Ф', hours: 24 },
+            { id: 2, name: 'Лосось филе (заготовка)', hours: 24 },
+            { id: 3, name: 'Креветка 16/20', hours: 24 },
+            { id: 4, name: 'Креветка 21/25', hours: 24 },
+            { id: 5, name: 'Креветка тигр', hours: 24 },
+            { id: 6, name: 'Филе куриное', hours: 24 },
+            { id: 7, name: 'Гребешок', hours: 24 },
+            { id: 8, name: 'Мидии', hours: 24 },
+            { id: 9, name: 'Кальмар', hours: 24 },
+            { id: 10, name: 'Угорь копчёный', hours: 48 },
+            { id: 11, name: 'Икра Масаго', hours: 48 },
+            { id: 12, name: 'Икра Тобико', hours: 48 },
+
+            // Соусы и заготовки
+            { id: 13, name: 'Соус Спайси', hours: 72 },
+            { id: 14, name: 'Соус Унаги', hours: 72 },
+            { id: 15, name: 'Соус Кимчи', hours: 72 },
+            { id: 16, name: 'Соус Шрирача', hours: 72 },
+            { id: 17, name: 'Соус Цезарь', hours: 48 },
+            { id: 18, name: 'Соус Тартар', hours: 48 },
+
+            // Овощи и заготовки
+            { id: 19, name: 'Огурец (нарезка)', hours: 12 },
+            { id: 20, name: 'Авокадо (заготовка)', hours: 6 },
+            { id: 21, name: 'Лук зелёный (нарезка)', hours: 12 },
+            { id: 22, name: 'Лук репчатый (нарезка)', hours: 24 },
+            { id: 23, name: 'Перец Чили', hours: 24 },
+            { id: 24, name: 'Морковь (заготовка)', hours: 48 },
+            { id: 25, name: 'Рис (готовый)', hours: 4 },
+
+            // Прочее
+            { id: 26, name: 'Сыр Филадельфия', hours: 48 },
+            { id: 27, name: 'Сыр сливочный', hours: 48 },
+            { id: 28, name: 'Тесто для пиццы', hours: 24 },
+            { id: 29, name: 'Спайси соус (готовый)', hours: 48 },
+            { id: 30, name: 'Соус для суши', hours: 72 },
+        ];
+
+        // ====== УТИЛИТЫ ======
+        const pad = (n) => String(n).padStart(2, '0');
+
+        const formatDate = (date) => {
+            const d = pad(date.getDate());
+            const m = pad(date.getMonth() + 1);
+            const y = date.getFullYear();
+            const hh = pad(date.getHours());
+            const mm = pad(date.getMinutes());
+            return `${d}.${m}.${y}, ${hh}.${mm}`;
+        };
+
+        const formatShort = (date) => {
+            const d = pad(date.getDate());
+            const m = pad(date.getMonth() + 1);
+            const y = date.getFullYear();
+            const hh = pad(date.getHours());
+            const mm = pad(date.getMinutes());
+            return `${d}.${m}.${y} ${hh}:${mm}`;
+        };
+
+        const toDateTimeLocal = (date) => {
+            const d = pad(date.getDate());
+            const m = pad(date.getMonth() + 1);
+            const y = date.getFullYear();
+            const hh = pad(date.getHours());
+            const mm = pad(date.getMinutes());
+            return `${y}-${m}-${d}T${hh}:${mm}`;
+        };
+
+        // ====== ПРИЛОЖЕНИЕ ======
+        function App() {
+            const [selectedId, setSelectedId] = useState(PRODUCTS[0].id);
+            const [startDate, setStartDate] = useState(toDateTimeLocal(new Date()));
+            const [chef, setChef] = useState(() => localStorage.getItem('chef') || '');
+            const [temperature, setTemperature] = useState(() => localStorage.getItem('temp') || '+2');
+            const [history, setHistory] = useState(() => {
+                try {
+                    return JSON.parse(localStorage.getItem('labelHistory') || '[]');
+                } catch { return []; }
+            });
+
+            const product = PRODUCTS.find(p => p.id === selectedId);
+
+            const expirationDate = (() => {
+                const d = new Date(startDate);
+                if (isNaN(d)) return null;
+                d.setTime(d.getTime() + product.hours * 60 * 60 * 1000);
+                return d;
+            })();
+
+            // Сохраняем повара и температуру
+            useEffect(() => {
+                localStorage.setItem('chef', chef);
+            }, [chef]);
+
+            useEffect(() => {
+                localStorage.setItem('temp', temperature);
+            }, [temperature]);
+
+            const handlePrint = () => {
+                // Сохраняем в историю
+                const entry = {
+                    product: product.name,
+                    start: formatShort(new Date(startDate)),
+                    end: expirationDate ? formatShort(expirationDate) : '—',
+                    chef: chef || '—',
+                    time: new Date().toISOString(),
+                };
+                const newHistory = [entry, ...history].slice(0, 20);
+                setHistory(newHistory);
+                localStorage.setItem('labelHistory', JSON.stringify(newHistory));
+
+                // Печать
+                window.print();
+            };
+
+            return (
+                <div className="app">
+                    <div className="header">
+                        <h1>🏷️ Муссон — Генератор этикеток</h1>
+                        <p>Коровый Вал, 5</p>
+                    </div>
+
+                    <div className="layout">
+                        {/* ЛЕВАЯ КОЛОНКА: ФОРМА */}
+                        <div className="card">
+                            <h2>Данные этикетки</h2>
+
+                            <label>Продукт</label>
+                            <select value={selectedId} onChange={e => setSelectedId(Number(e.target.value))}>
+                                {PRODUCTS.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.name} ({p.hours} ч.)
+                                    </option>
+                                ))}
+                            </select>
+
+                            <label>Дата и время изготовления</label>
+                            <input
+                                type="datetime-local"
+                                value={startDate}
+                                onChange={e => setStartDate(e.target.value)}
+                            />
+
+                            <label>Повар (ФИО)</label>
+                            <input
+                                type="text"
+                                value={chef}
+                                onChange={e => setChef(e.target.value)}
+                                placeholder="Иванов И.И."
+                            />
+
+                            <label>Температура холодильника</label>
+                            <input
+                                type="text"
+                                value={temperature}
+                                onChange={e => setTemperature(e.target.value)}
+                                placeholder="+2"
+                            />
+
+                            <button className="btn btn--secondary" onClick={handlePrint}>
+                                🖨️ Напечатать этикетку
+                            </button>
+
+                            <p className="hint">
+                                Кнопка откроет диалог печати. Выберите термопринтер.<br />
+                                Размер этикетки: 58×40 мм.
+                            </p>
+                        </div>
+
+                        {/* ПРАВАЯ КОЛОНКА: ПРЕДПРОСМОТР */}
+                        <div className="card">
+                            <h2>Предпросмотр</h2>
+
+                            <div className="preview-wrapper">
+                                <div className="label-preview">
+                                    <h3>{product.name}</h3>
+                                    <p>Дата изготовления: {formatDate(new Date(startDate))}</p>
+                                    <p>Срок хранения: {product.hours} часов</p>
+                                    <p>Годен до: {expirationDate ? formatDate(expirationDate) : '—'}</p>
+                                    <p>Изготовитель: {chef || '—'}</p>
+                                    <p>Темп. хранения: {temperature}°C</p>
+                                </div>
+                            </div>
+
+                            <div className="history">
+                                <h3>Последние этикетки</h3>
+                                {history.length === 0 && (
+                                    <div style={{ color: '#999', fontSize: 12 }}>Пока ничего не напечатано</div>
+                                )}
+                                {history.map((h, i) => (
+                                    <div key={i} className="history-item">
+                                        <span>{h.product}</span>
+                                        <span>до {h.end}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+
+</html>
